@@ -1,0 +1,123 @@
+package com.example.bustracking;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.os.Bundle;
+import android.util.Log;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.example.bustracking.model.LinhaBus;
+import com.example.bustracking.service.LinhaBusServices;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import okhttp3.OkHttpClient;
+import okhttp3.logging.HttpLoggingInterceptor;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
+
+public class MainActivity extends AppCompatActivity {
+
+    TextView mostraCep;
+    Button button;
+    EditText textField;
+    String busao = "3134";
+    private String cookie = "";
+    LinhaBusServices service;
+    String token = "8ac9820a47c1067e125b25625c2c4c2d653bb7e3306aff7353c00cbf1ec455cb";
+    private List<LinhaBus> linhaDosBusao = new ArrayList<>();
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        mostraCep = findViewById(R.id.text);
+        button = findViewById(R.id.button);
+        textField = findViewById(R.id.textField);
+
+        initRetrofitOkHttpClient();
+        textField.setHint("Insira um numero de onibus:" );
+
+
+        requisicaoToken();
+
+        button.setOnClickListener(v -> requisicaoNroOnibus());
+
+    }
+
+    private void requisicaoToken() {
+        Call<String> login = service.getLogin(token);
+        login.enqueue(new Callback<String>() {
+            @Override
+            public void onResponse(Call<String> call, Response<String> response) {
+
+                Toast.makeText(getBaseContext(), String.valueOf(response.body()), Toast.LENGTH_SHORT).show();
+                cookie = String.valueOf(response.headers().get("Set-Cookie"));
+            }
+
+            @Override
+            public void onFailure(Call<String> call, Throwable t) {
+                t.getLocalizedMessage();
+            }
+        });
+    }
+
+    private void requisicaoNroOnibus() {
+        Call<List<LinhaBus>> previsao = service.getPrevisao(textField.getText().toString(), cookie);
+
+        previsao.enqueue(new Callback<List<LinhaBus>>() {
+            @Override
+            public void onResponse(Call<List<LinhaBus>> call, Response<List<LinhaBus>> response) {
+                linhaDosBusao = response.body();
+                for (LinhaBus a : linhaDosBusao){
+                    if(a.getTl() == 10){
+                        mostraCep.setText("Numero do onibus: " + a.getNroLinha() + "\n"
+                                + "Partida: " + a.getDenominacaoTPTS() + "\n"
+                                + "Destino: " + a.getDenominacaoTSTP());
+                    }
+                    if(textField == null){
+                        mostraCep.setText("");
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<LinhaBus>> call, Throwable t) {
+                Toast.makeText(MainActivity.this, "Não encontramos esse onibus em nossa base de dados!", Toast.LENGTH_SHORT).show();
+                Log.d("erro", t.getMessage());
+            }
+        });
+
+    }
+    private void initRetrofitOkHttpClient() {
+        //inteceptar o body do http
+        HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
+        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+
+        //client
+        OkHttpClient client = new OkHttpClient
+                .Builder()
+                .addInterceptor(interceptor)
+                .build();
+
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("http://api.olhovivo.sptrans.com.br/v2.1/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .client(client)
+                .build();
+
+
+        service = retrofit.create(LinhaBusServices.class);
+    }
+
+
+}
