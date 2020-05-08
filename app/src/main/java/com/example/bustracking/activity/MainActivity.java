@@ -1,4 +1,4 @@
-package com.example.bustracking;
+package com.example.bustracking.activity;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -9,6 +9,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.bustracking.R;
 import com.example.bustracking.model.LinhaBus;
 import com.example.bustracking.service.LinhaBusServices;
 
@@ -26,10 +27,9 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
 
-    TextView mostraCep;
+    TextView textNroLinha, textPartida, textDestino;
     Button button;
     EditText textField;
-    String busao = "3134";
     private String cookie = "";
     LinhaBusServices service;
     String token = "8ac9820a47c1067e125b25625c2c4c2d653bb7e3306aff7353c00cbf1ec455cb";
@@ -39,18 +39,19 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mostraCep = findViewById(R.id.text);
+
+        textNroLinha = findViewById(R.id.textNroLinha);
+        textPartida = findViewById(R.id.textPartida);
+        textDestino = findViewById(R.id.textDestino);
+
         button = findViewById(R.id.button);
         textField = findViewById(R.id.textField);
 
         initRetrofitOkHttpClient();
-        textField.setHint("Insira um numero de onibus:" );
-
 
         requisicaoToken();
 
         button.setOnClickListener(v -> requisicaoNroOnibus());
-
     }
 
     private void requisicaoToken() {
@@ -58,9 +59,9 @@ public class MainActivity extends AppCompatActivity {
         login.enqueue(new Callback<String>() {
             @Override
             public void onResponse(Call<String> call, Response<String> response) {
-
-                Toast.makeText(getBaseContext(), String.valueOf(response.body()), Toast.LENGTH_SHORT).show();
+                Log.d("deu certo",String.valueOf(response.body()));
                 cookie = String.valueOf(response.headers().get("Set-Cookie"));
+                Log.d("cookie", cookie);
             }
 
             @Override
@@ -76,22 +77,26 @@ public class MainActivity extends AppCompatActivity {
         previsao.enqueue(new Callback<List<LinhaBus>>() {
             @Override
             public void onResponse(Call<List<LinhaBus>> call, Response<List<LinhaBus>> response) {
-                linhaDosBusao = response.body();
-                for (LinhaBus a : linhaDosBusao){
-                    if(a.getTl() == 10){
-                        mostraCep.setText("Numero do onibus: " + a.getNroLinha() + "\n"
-                                + "Partida: " + a.getDenominacaoTPTS() + "\n"
-                                + "Destino: " + a.getDenominacaoTSTP());
+                if(response.code() == 200) {
+                    linhaDosBusao = response.body();
+                    for (LinhaBus a : linhaDosBusao) {
+                        if (a.getTl() == 10) {
+                            textNroLinha.setText("Número da linha: " + a.getNroLinha());
+                            textPartida.setText("Terminal de partida: " + a.getDenominacaoTPTS());
+                            textDestino.setText("Terminal de destino:" + a.getDenominacaoTSTP());
+                        }
                     }
-                    if(textField == null){
-                        mostraCep.setText("");
-                    }
+                }if(response.raw().body().contentLength() == 2){
+                    Toast.makeText(MainActivity.this, "Não encontramos esse onibus em nossa base de dados", Toast.LENGTH_SHORT).show();
+                    textNroLinha.setText("");
+                    textPartida.setText("");
+                    textDestino.setText("");
                 }
             }
 
             @Override
             public void onFailure(Call<List<LinhaBus>> call, Throwable t) {
-                Toast.makeText(MainActivity.this, "Não encontramos esse onibus em nossa base de dados!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Algo deu errado", Toast.LENGTH_SHORT).show();
                 Log.d("erro", t.getMessage());
             }
         });
