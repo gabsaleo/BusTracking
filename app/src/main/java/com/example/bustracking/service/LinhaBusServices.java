@@ -1,6 +1,7 @@
 package com.example.bustracking.service;
 
 import com.example.bustracking.model.LinhaBus;
+import com.example.bustracking.model.ParadaOnibusMock;
 
 
 import java.sql.Array;
@@ -21,6 +22,11 @@ public interface LinhaBusServices {
     @GET("Linha/Buscar")
     Call<List<LinhaBus>> getPrevisao(@Query("termosBusca") String nrolinha,
                                    @Header("cookie") String cookie);
+
+    @GET("Previsao/Parada")
+    Call<ParadaOnibusMock> getHora(@Query("codigoParada") int codigoParada,
+                                        @Header("cookie") String cookie);
+
 }
 
 

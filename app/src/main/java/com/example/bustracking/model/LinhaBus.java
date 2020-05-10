@@ -14,6 +14,7 @@ public class LinhaBus {
     int tl;
 
 
+
     public String getNroLinha() {
         return lt;
     }
@@ -29,3 +30,4 @@ public class LinhaBus {
         return tl;
     }
 }
+
